@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, ChangeEvent, SyntheticEvent, useCallback } from "react";
+import Navbar from "./components/Navbar";
 
 interface Bag {
   itemId: string;
@@ -88,7 +89,15 @@ export default function Home() {
   };
 
   return (
-    <div className="container">
+    <Navbar 
+        bags={bags} 
+        searchParams={{
+          minPrice,
+          maxPrice,
+          selectedBrands
+        }}
+    >
+      <div className="container">
       <div className="header">
         <h1>Luxury Bags Search</h1>
         <p>Find your perfect designer bag from eBay's premium collection</p>
@@ -203,6 +212,7 @@ export default function Home() {
         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
       )}
     </div>
+    </Navbar>
   );
 }
 
