@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     const promises = selectedBrands.map((brand) => {
       const searchUrl = `https://api.ebay.com/buy/browse/v1/item_summary/search?q=${encodeURIComponent(
         brand
-      )}&limit=${EBAY_API_LIMIT}&filter=price:[${minPrice}..${maxPrice}],priceCurrency:AUD`;
+      )}&limit=${EBAY_API_LIMIT}&filter=price:[${minPrice}..${maxPrice}]`;
       return axios.get(searchUrl, {
         headers: {
           Authorization: `Bearer ${token}`,

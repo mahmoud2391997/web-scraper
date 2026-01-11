@@ -212,7 +212,6 @@ const BagCard = ({ bag }: BagCardProps) => {
     bag.thumbnailImages?.[0]?.imageUrl ||
     "https://via.placeholder.com/300x250?text=No+Image";
   const price = parseFloat(bag.price.value).toFixed(2);
-  const currency = bag.price.currency || "AUD";
   const condition = bag.condition || "Unknown";
   const seller = bag.seller?.username || "Unknown Seller";
   const itemUrl = bag.itemWebUrl || "#";
@@ -229,7 +228,7 @@ const BagCard = ({ bag }: BagCardProps) => {
       />
       <div className="bag-info">
         <div className="bag-title" title={bag.title}>{bag.title}</div>
-        <div className="bag-price">{`${currency} $${price}`}</div>
+        <div className="bag-price">{`$${price}`}</div>
         <div className="bag-condition">{condition}</div>
         <div className="bag-seller">Seller: {seller}</div>
         <a href={itemUrl} target="_blank" rel="noopener noreferrer" className="bag-link" onClick={(e) => e.stopPropagation()}>
