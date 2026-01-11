@@ -17,7 +17,11 @@ export default function VintedInterface() {
   const [error, setError] = useState("");
   const [items, setItems] = useState<VintedItem[]>([]);
   const [emptyState, setEmptyState] = useState(true);
-  const [usingMockData, setUsingMockData] = useState(false);
+  const [usingFallbackData, setUsingFallbackData] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(24);
+  const [totalResults, setTotalResults] = useState(0);
+  const [sortBy, setSortBy] = useState("relevance");
 
   const quickSearchTags = [
     "Dior bag",
@@ -36,7 +40,7 @@ export default function VintedInterface() {
   };
 
   const quickSearch = (term: string) => {
-    setSearchTerm(term);
+    handleSearchTermChange(term);
     setTimeout(() => performSearch(), 100);
   };
 
@@ -47,13 +51,15 @@ export default function VintedInterface() {
     setError("");
     setItems([]);
     setEmptyState(false);
-    setUsingMockData(false); // Reset mock data flag
+    setUsingFallbackData(false);
+    setCurrentPage(1);
 
     try {
       let url = `/api/vinted?search_term=${encodeURIComponent(searchTerm)}`;
       
       if (minPrice) url += `&min_price=${encodeURIComponent(minPrice)}`;
       if (maxPrice) url += `&max_price=${encodeURIComponent(maxPrice)}`;
+      if (sortBy !== "relevance") url += `&sort_by=${encodeURIComponent(sortBy)}`;
 
       console.log('Fetching from URL:', url);
       
@@ -79,26 +85,30 @@ export default function VintedInterface() {
 
       const data = await response.json();
       console.log('Received data:', data);
-      setItems(data || []);
-      setUsingMockData(false);
+      
+      // Handle both array and response object formats
+      let itemsArray: VintedItem[] = [];
+      if (Array.isArray(data)) {
+        itemsArray = data;
+      } else if (data.items && Array.isArray(data.items)) {
+        itemsArray = data.items;
+        setTotalResults(data.totalResults || data.items.length);
+      } else {
+        itemsArray = data || [];
+      }
+      
+      setItems(itemsArray);
+      setTotalResults(itemsArray.length);
+      
+      // Check if using fallback data from header
+      const isFallbackData = response.headers.get('X-Fallback-Data') === 'true';
+      setUsingFallbackData(isFallbackData);
 
-      if (data.length === 0) {
+      if (itemsArray.length === 0) {
         setEmptyState(true);
       }
     } catch (err: any) {
       console.error('Full error:', err);
-      
-      // If it's a network error or timeout, show mock data
-      if (err.name === 'AbortError') {
-        console.log('Request timed out, showing mock data for demonstration');
-        const mockData = getMockData(searchTerm);
-        setItems(mockData);
-        setUsingMockData(true);
-        setError('');
-        return;
-      }
-      
-      // For other errors, show the error message instead of mock data
       setError(`Error: ${err.message}`);
       setEmptyState(true);
     } finally {
@@ -106,35 +116,117 @@ export default function VintedInterface() {
     }
   };
 
-  // Mock data function for demonstration when API is down
-  const getMockData = (term: string): VintedItem[] => {
-    return [
-      {
-        title: `Luxury ${term} - Premium Quality`,
-        price: "150€",
-        image: "https://via.placeholder.com/310x430?text=Luxury+Bag",
-        url: "https://www.vinted.com/item/mock1"
-      },
-      {
-        title: `Designer ${term} - Like New`,
-        price: "180€",
-        image: "https://via.placeholder.com/310x430?text=Designer+Bag",
-        url: "https://www.vinted.com/item/mock2"
-      },
-      {
-        title: `Vintage ${term} - Excellent Condition`,
-        price: "120€",
-        image: "https://via.placeholder.com/310x430?text=Vintage+Bag",
-        url: "https://www.vinted.com/item/mock3"
-      },
-      {
-        title: `${term} - Limited Edition`,
-        price: "220€",
-        image: "https://via.placeholder.com/310x430?text=Limited+Edition",
-        url: "https://www.vinted.com/item/mock4"
-      }
-    ];
+  const handlePageChange = (pageNumber: number) => {
+    if (pageNumber < 1 || pageNumber > Math.ceil(totalResults / itemsPerPage)) return;
+    setCurrentPage(pageNumber);
+    window.scrollTo(0, 0);
   };
+
+  // Auto-search when options change
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+    if (searchTerm.trim()) {
+      performSearch();
+    }
+  };
+
+  const handleSortChange = (newSortBy: string) => {
+    setSortBy(newSortBy);
+    setCurrentPage(1);
+    if (searchTerm.trim()) {
+      performSearch();
+    }
+  };
+
+  // Clear results when search term changes
+  const handleSearchTermChange = (value: string) => {
+    setSearchTerm(value);
+    if (!value.trim()) {
+      // Clear all results when search term is empty
+      setItems([]);
+      setTotalResults(0);
+      setCurrentPage(1);
+      setEmptyState(true);
+      setError("");
+    }
+  };
+
+  interface PaginationProps {
+    currentPage: number;
+    totalPages: number;
+    onPageChange: (pageNumber: number) => void;
+  }
+
+  const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) => {
+    const getPageNumbers = () => {
+      const pages = [];
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        if (currentPage > 4) {
+          pages.push('...');
+        }
+        let start = Math.max(2, currentPage - 2);
+        let end = Math.min(totalPages - 1, currentPage + 2);
+
+        if (currentPage <= 4) {
+          start = 2;
+          end = 6;
+        }
+        if (currentPage >= totalPages - 3) {
+          start = totalPages - 5;
+          end = totalPages - 1;
+        }
+
+        for (let i = start; i <= end; i++) {
+          pages.push(i);
+        }
+        if (currentPage < totalPages - 3) {
+          pages.push('...');
+        }
+        pages.push(totalPages);
+      }
+      return pages;
+    };
+
+    const pageNumbers = getPageNumbers();
+
+    return (
+      <nav className="pagination-nav">
+        <ul className="pagination">
+          <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+            <a onClick={(e) => { e.preventDefault(); onPageChange(1); }} href="#" className="page-link">First</a>
+          </li>
+          <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+            <a onClick={(e) => { e.preventDefault(); onPageChange(currentPage - 1); }} href="#" className="page-link">Prev</a>
+          </li>
+          {pageNumbers.map((num, index) => (
+            <li key={index} className={`page-item ${num === currentPage ? 'active' : ''} ${num === '...' ? 'disabled' : ''}`}>
+              <a onClick={(e) => { e.preventDefault(); if(typeof num === 'number') onPageChange(num); }} href="#" className="page-link">
+                {num}
+              </a>
+            </li>
+          ))}
+          <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+            <a onClick={(e) => { e.preventDefault(); onPageChange(currentPage + 1); }} href="#" className="page-link">Next</a>
+          </li>
+          <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+            <a onClick={(e) => { e.preventDefault(); onPageChange(totalPages); }} href="#" className="page-link">Last</a>
+          </li>
+        </ul>
+      </nav>
+    );
+  };
+
+  // Calculate pagination
+  const totalPages = Math.ceil(totalResults / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentItems = items.slice(startIndex, endIndex);
 
   return (
     <div className="vinted-interface">
@@ -143,7 +235,7 @@ export default function VintedInterface() {
           <input
             type="text"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchTermChange(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Search for items..."
             className="search-input"
@@ -172,6 +264,34 @@ export default function VintedInterface() {
             {loading ? "Searching..." : "Search"}
           </button>
         </div>
+        <div className="search-options">
+          <div className="items-per-page">
+            <label>Items per page:</label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
+              className="items-select"
+            >
+              <option value="12">12</option>
+              <option value="24">24</option>
+              <option value="48">48</option>
+              <option value="96">96</option>
+            </select>
+          </div>
+          <div className="sort-options">
+            <label>Sort by:</label>
+            <select
+              value={sortBy}
+              onChange={(e) => handleSortChange(e.target.value)}
+              className="sort-select"
+            >
+              <option value="relevance">Relevance</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="newest">Newest First</option>
+            </select>
+          </div>
+        </div>
         <div className="quick-search">
           {quickSearchTags.map((tag) => (
             <span
@@ -186,24 +306,34 @@ export default function VintedInterface() {
       </div>
 
       <div className="vinted-main">
+        {!loading && totalResults > 0 && (
+          <div className="results-info">
+            <div className="results-count">
+              <strong>{totalResults}</strong> items found
+              {totalResults > itemsPerPage && (
+                <span> (showing {startIndex + 1}-{Math.min(endIndex, totalResults)})</span>
+              )}
+            </div>
+          </div>
+        )}
+        
         {loading && (
           <div className="loading">Searching Vinted... Please wait...</div>
         )}
         {error && <div className="error">{error}</div>}
         {emptyState && !loading && !error && (
           <div className="empty-state">
-            {searchTerm ? "No items found." : "Enter a search term above to start scraping."}
+            {searchTerm ? "No items found. Try adjusting your filters." : "Enter a search term above to start scraping."}
           </div>
         )}
-        {items.length > 0 && (
-          <>
-            {usingMockData && (
-              <div className="mock-data-notice">
-                <strong>Note:</strong> Vinted API is currently unavailable. Showing demonstration data.
+        {currentItems.length > 0 && (
+          <div className="results-grid">
+            {usingFallbackData && (
+              <div className="fallback-data-notice">
+                <strong>Note:</strong> Vinted scraping is currently unavailable. You can search directly on Vinted using the link below.
               </div>
             )}
-            <div className="results-grid">
-            {items.map((item, index) => (
+            {currentItems.map((item, index) => (
               <div key={index} className="item-card">
                 <a
                   href={item.url}
@@ -229,8 +359,11 @@ export default function VintedInterface() {
                 </a>
               </div>
             ))}
-            </div>
-          </>
+          </div>
+        )}
+        
+        {!loading && totalPages > 1 && (
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
         )}
       </div>
 
@@ -310,6 +443,109 @@ export default function VintedInterface() {
         .search-button:disabled {
           background-color: #ccc;
           cursor: not-allowed;
+        }
+
+        .search-container {
+          display: flex;
+          gap: 10px;
+          max-width: 800px;
+          width: 90%;
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+
+        .search-options {
+          display: flex;
+          gap: 20px;
+          justify-content: center;
+          align-items: center;
+          margin-top: 10px;
+          flex-wrap: wrap;
+        }
+
+        .items-per-page,
+        .sort-options {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .items-per-page label,
+        .sort-options label {
+          font-size: 14px;
+          font-weight: 500;
+        }
+
+        .items-select,
+        .sort-select {
+          padding: 4px 8px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          font-size: 14px;
+          background: white;
+        }
+
+        .results-info {
+          text-align: center;
+          margin: 20px 0;
+          padding: 10px;
+          background: #f8f9fa;
+          border-radius: 4px;
+        }
+
+        .results-count {
+          font-size: 16px;
+          color: var(--text);
+        }
+
+        .results-count span {
+          color: #666;
+          font-size: 14px;
+        }
+
+        .pagination-nav {
+          margin-top: 30px;
+          text-align: center;
+        }
+
+        .pagination {
+          display: flex;
+          justify-content: center;
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+
+        .page-item {
+          margin: 0 2px;
+        }
+
+        .page-link {
+          display: block;
+          padding: 8px 12px;
+          text-decoration: none;
+          color: var(--primary);
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          transition: all 0.3s ease;
+        }
+
+        .page-link:hover {
+          background-color: var(--primary);
+          color: white;
+          border-color: var(--primary);
+        }
+
+        .page-item.active .page-link {
+          background-color: var(--primary);
+          color: white;
+          border-color: var(--primary);
+        }
+
+        .page-item.disabled .page-link {
+          color: #ccc;
+          cursor: not-allowed;
+          background-color: #f8f9fa;
         }
 
         .quick-search {
@@ -421,13 +657,13 @@ export default function VintedInterface() {
           border-radius: 4px;
         }
 
-        .mock-data-notice {
+        .fallback-data-notice {
           text-align: center;
           margin: 20px 0;
           padding: 15px;
-          background: #fff3cd;
-          color: #856404;
-          border: 1px solid #ffeaa7;
+          background: #e3f2fd;
+          color: #1565c0;
+          border: 1px solid #90caf9;
           border-radius: 4px;
           font-size: 14px;
         }

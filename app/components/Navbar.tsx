@@ -36,14 +36,15 @@ export default function Navbar({ bags, searchParams, children }: NavbarProps) {
       
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error('Failed to fetch Vinted data');
+        console.error('Vinted API error:', response.status, response.statusText);
+        return []; // Return empty array on error, no mock data
       }
       
       const data = await response.json();
       return data || [];
     } catch (error) {
       console.error('Error fetching Vinted data:', error);
-      return [];
+      return []; // Return empty array on error, no mock data
     }
   };
 
