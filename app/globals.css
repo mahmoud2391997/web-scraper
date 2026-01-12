@@ -202,6 +202,93 @@ body {
   background: #5a6268;
 }
 
+/* Mobile Responsive Design */
+@media (max-width: 768px) {
+  .search-section {
+    margin-bottom: 25px;
+    padding: 20px 15px;
+  }
+  
+  .search-bar {
+    max-width: 100%;
+  }
+  
+  .search-bar label {
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  
+  .search-container {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .search-input {
+    height: 50px;
+    padding: 15px;
+    font-size: 16px;
+  }
+  
+  .search-input::placeholder {
+    font-size: 15px;
+  }
+  
+  .search-button {
+    height: 50px;
+    padding: 15px 20px;
+    font-size: 16px;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .clear-button {
+    height: 50px;
+    padding: 15px 20px;
+    font-size: 16px;
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Small Mobile Responsive Design */
+@media (max-width: 480px) {
+  .search-section {
+    padding: 15px 10px;
+  }
+  
+  .search-bar label {
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+  
+  .search-container {
+    gap: 10px;
+  }
+  
+  .search-input {
+    height: 48px;
+    padding: 12px 15px;
+    font-size: 15px;
+  }
+  
+  .search-input::placeholder {
+    font-size: 14px;
+  }
+  
+  .search-button {
+    height: 48px;
+    padding: 12px 18px;
+    font-size: 15px;
+  }
+  
+  .clear-button {
+    height: 48px;
+    padding: 12px 18px;
+    font-size: 15px;
+  }
+}
+
 .brand-checkboxes {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
