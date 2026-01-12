@@ -38,6 +38,7 @@ export default function Home() {
   const [sortBy, setSortBy] = useState("price-asc");
   const [searchQuery, setSearchQuery] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState("EBAY_AU");
 
   const searchBags = useCallback(async (page: number) => {
     setLoading(true);
@@ -50,11 +51,11 @@ export default function Home() {
     let url;
     if (hasSearchQuery) {
       // Search entire site with query
-      url = `/api/luxury-bags?page=${page}&itemsPerPage=${itemsPerPage}&sortBy=${sortBy}&minPrice=${minPrice}&maxPrice=${maxPrice}&search=${encodeURIComponent(searchQuery.trim())}`;
+      url = `/api/luxury-bags?page=${page}&itemsPerPage=${itemsPerPage}&sortBy=${sortBy}&minPrice=${minPrice}&maxPrice=${maxPrice}&search=${encodeURIComponent(searchQuery.trim())}&country=${selectedCountry}`;
     } else {
       // Use brand filters when no search query
       const brandsQuery = selectedBrands.join(',');
-      url = `/api/luxury-bags?page=${page}&itemsPerPage=${itemsPerPage}&sortBy=${sortBy}&minPrice=${minPrice}&maxPrice=${maxPrice}&brands=${brandsQuery}`;
+      url = `/api/luxury-bags?page=${page}&itemsPerPage=${itemsPerPage}&sortBy=${sortBy}&minPrice=${minPrice}&maxPrice=${maxPrice}&brands=${brandsQuery}&country=${selectedCountry}`;
     }
 
     try {
@@ -80,7 +81,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [selectedBrands, itemsPerPage, sortBy, minPrice, maxPrice, searchQuery]);
+  }, [selectedBrands, itemsPerPage, sortBy, minPrice, maxPrice, searchQuery, selectedCountry]);
 
   const exportToExcel = useCallback(() => {
     if (bags.length === 0) {
@@ -95,8 +96,8 @@ export default function Home() {
       const excelData = bags.map((bag, index) => ({
         'No.': index + 1,
         'Title': bag.title,
-        'Price': `$${parseFloat(bag.price.value).toFixed(2)}`,
-        'Currency': bag.price.currency,
+        'Price': `€${parseFloat(bag.price.value).toFixed(2)}`,
+        'Currency': bag.price.currency || 'EUR',
         'Condition': bag.condition || 'Unknown',
         'Seller': bag.seller?.username || 'Unknown',
         'Item URL': bag.itemWebUrl || '',
@@ -212,11 +213,36 @@ export default function Home() {
               )}
             </div>
           </div>
+          
+          <div className="country-section">
+            <label htmlFor="country">Country</label>
+            <select
+              id="country"
+              value={selectedCountry}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedCountry(e.target.value)}
+              className="country-select"
+            >
+              <option value="ALL">All Countries (Global)</option>
+              <option value="EBAY_AU">Australia</option>
+              <option value="EBAY_US">United States</option>
+              <option value="EBAY_GB">United Kingdom</option>
+              <option value="EBAY_DE">Germany</option>
+              <option value="EBAY_CA">Canada</option>
+              <option value="EBAY_FR">France</option>
+              <option value="EBAY_IT">Italy</option>
+              <option value="EBAY_ES">Spain</option>
+              <option value="EBAY_NL">Netherlands</option>
+              <option value="EBAY_BE">Belgium</option>
+              <option value="EBAY_AT">Austria</option>
+              <option value="EBAY_CH">Switzerland</option>
+              <option value="EBAY_IE">Ireland</option>
+            </select>
+          </div>
         </div>
 
         <div className="filter-row">
           <div className="filter-group">
-            <label htmlFor="minPrice">Min Price ($)</label>
+            <label htmlFor="minPrice">Min Price (€)</label>
             <input
               type="number"
               id="minPrice"
@@ -227,7 +253,7 @@ export default function Home() {
             />
           </div>
           <div className="filter-group">
-            <label htmlFor="maxPrice">Max Price ($)</label>
+            <label htmlFor="maxPrice">Max Price (€)</label>
             <input
               type="number"
               id="maxPrice"
@@ -347,7 +373,7 @@ const BagCard = ({ bag }: BagCardProps) => {
       />
       <div className="bag-info">
         <div className="bag-title" title={bag.title}>{bag.title}</div>
-        <div className="bag-price">{`$${price}`}</div>
+        <div className="bag-price">{`€${price}`}</div>
         <div className="bag-condition">{condition}</div>
         <div className="bag-seller">Seller: {seller}</div>
         <a href={itemUrl} target="_blank" rel="noopener noreferrer" className="bag-link" onClick={(e) => e.stopPropagation()}>

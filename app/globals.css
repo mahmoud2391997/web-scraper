@@ -136,6 +136,38 @@ body {
   align-items: center;
 }
 
+.country-section {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.country-section label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #495057;
+  font-size: 16px;
+}
+
+.country-select {
+  width: 100%;
+  max-width: 300px;
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 16px;
+  background: white;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.country-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
 .search-input {
   width: 100%;
   padding: 18px 20px;
@@ -285,6 +317,21 @@ body {
   .clear-button {
     height: 48px;
     padding: 12px 18px;
+    font-size: 15px;
+  }
+  
+  .country-section {
+    margin-top: 15px;
+  }
+  
+  .country-section label {
+    font-size: 15px;
+    margin-bottom: 6px;
+  }
+  
+  .country-select {
+    max-width: 100%;
+    padding: 12px;
     font-size: 15px;
   }
 }

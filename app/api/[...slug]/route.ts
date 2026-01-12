@@ -47,6 +47,30 @@ export async function GET(request: NextRequest) {
   const maxPrice = searchParams.get("maxPrice") || "1000";
   const brandsParam = searchParams.get("brands");
   const searchQuery = searchParams.get("search");
+  const country = searchParams.get("country") || "EBAY_AU";
+
+  // Handle global search across multiple marketplaces
+  const isGlobalSearch = country === "ALL";
+  
+  // Define marketplace configurations
+  const marketplaces = [
+    { id: "EBAY_US", name: "United States", currency: "USD" },
+    { id: "EBAY_GB", name: "United Kingdom", currency: "GBP" },
+    { id: "EBAY_DE", name: "Germany", currency: "EUR" },
+    { id: "EBAY_AU", name: "Australia", currency: "AUD" },
+    { id: "EBAY_CA", name: "Canada", currency: "CAD" },
+    { id: "EBAY_FR", name: "France", currency: "EUR" },
+    { id: "EBAY_IT", name: "Italy", currency: "EUR" },
+    { id: "EBAY_ES", name: "Spain", currency: "EUR" },
+    { id: "EBAY_NL", name: "Netherlands", currency: "EUR" },
+    { id: "EBAY_BE", name: "Belgium", currency: "EUR" },
+    { id: "EBAY_AT", name: "Austria", currency: "EUR" },
+    { id: "EBAY_CH", name: "Switzerland", currency: "CHF" },
+    { id: "EBAY_IE", name: "Ireland", currency: "EUR" }
+  ];
+
+  // Determine which marketplaces to search
+  const searchMarketplaces = isGlobalSearch ? marketplaces : [marketplaces.find(mp => mp.id === country)].filter(Boolean);
 
   const allBrands = [
       "Dior bag",
@@ -85,24 +109,27 @@ export async function GET(request: NextRequest) {
     const token = await getAppToken();
     const EBAY_API_LIMIT = 200;
 
-    const promises = searchQueries.map((query) => {
-      const searchUrl = `https://api.ebay.com/buy/browse/v1/item_summary/search?q=${encodeURIComponent(
-        query
-      )}&limit=${EBAY_API_LIMIT}&filter=price:[${minPrice}..${maxPrice}]`;
-      return axios.get(searchUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "X-EBAY-C-MARKETPLACE-ID": "EBAY_AU",
-        },
+    const promises = searchMarketplaces.map((marketplace) => {
+      if (!marketplace) return [];
+      return searchQueries.map((query) => {
+        const searchUrl = `https://api.ebay.com/buy/browse/v1/item_summary/search?q=${encodeURIComponent(
+          query
+        )}&limit=${EBAY_API_LIMIT}&filter=price:[${minPrice}..${maxPrice}]`;
+        return axios.get(searchUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            "X-EBAY-C-MARKETPLACE-ID": marketplace.id,
+          },
+        });
       });
-    });
+    }).flat();
 
     const responses = await Promise.allSettled(promises);
 
     let allItems: Item[] = [];
     responses.forEach((response) => {
-      if (response.status === "fulfilled" && response.value.data.itemSummaries) {
+      if (response.status === "fulfilled" && response.value && response.value.data && response.value.data.itemSummaries) {
         allItems = allItems.concat(response.value.data.itemSummaries);
       }
     });
