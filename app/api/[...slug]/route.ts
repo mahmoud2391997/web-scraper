@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
   const maxPrice = searchParams.get("maxPrice") || "1000";
   const brandsParam = searchParams.get("brands");
   const searchQuery = searchParams.get("search");
-  const country = searchParams.get("country") || "EBAY_AU";
+  const country = searchParams.get("country") || "ALL";
 
   // Handle global search across multiple marketplaces
   const isGlobalSearch = country === "ALL";

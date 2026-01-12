@@ -38,7 +38,7 @@ export default function Home() {
   const [sortBy, setSortBy] = useState("price-asc");
   const [searchQuery, setSearchQuery] = useState("");
   const [isExporting, setIsExporting] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState("EBAY_AU");
+  const [selectedCountry, setSelectedCountry] = useState("ALL");
 
   const searchBags = useCallback(async (page: number) => {
     setLoading(true);
