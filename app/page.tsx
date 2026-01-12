@@ -43,9 +43,19 @@ export default function Home() {
     setLoading(true);
     setError(null);
 
-    const brandsQuery = selectedBrands.join(',');
-    const searchParam = searchQuery.trim() ? `&search=${encodeURIComponent(searchQuery.trim())}` : '';
-    const url = `/api/luxury-bags?page=${page}&itemsPerPage=${itemsPerPage}&sortBy=${sortBy}&minPrice=${minPrice}&maxPrice=${maxPrice}&brands=${brandsQuery}${searchParam}`;
+    // If there's a search query, search the entire site (ignore brand filters)
+    // If no search query, use brand filters
+    const hasSearchQuery = searchQuery.trim().length > 0;
+    
+    let url;
+    if (hasSearchQuery) {
+      // Search entire site with query
+      url = `/api/luxury-bags?page=${page}&itemsPerPage=${itemsPerPage}&sortBy=${sortBy}&minPrice=${minPrice}&maxPrice=${maxPrice}&search=${encodeURIComponent(searchQuery.trim())}`;
+    } else {
+      // Use brand filters when no search query
+      const brandsQuery = selectedBrands.join(',');
+      url = `/api/luxury-bags?page=${page}&itemsPerPage=${itemsPerPage}&sortBy=${sortBy}&minPrice=${minPrice}&maxPrice=${maxPrice}&brands=${brandsQuery}`;
+    }
 
     try {
       const response = await fetch(url);

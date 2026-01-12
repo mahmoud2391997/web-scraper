@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
   const minPrice = searchParams.get("minPrice") || "0";
   const maxPrice = searchParams.get("maxPrice") || "1000";
   const brandsParam = searchParams.get("brands");
+  const searchQuery = searchParams.get("search");
 
   const allBrands = [
       "Dior bag",
@@ -58,6 +59,17 @@ export async function GET(request: NextRequest) {
   ];
 
   const selectedBrands = (brandsParam && brandsParam.length > 0) ? brandsParam.split(',') : allBrands;
+
+  // Build search queries based on search query vs brand filters
+  let searchQueries: string[] = [];
+  
+  if (searchQuery && searchQuery.trim()) {
+    // If custom search query is provided, use it instead of brands
+    searchQueries = [searchQuery.trim()];
+  } else {
+    // Otherwise use selected brands
+    searchQueries = selectedBrands;
+  }
 
   if (!CLIENT_ID || !CLIENT_SECRET) {
     return NextResponse.json(
@@ -73,9 +85,9 @@ export async function GET(request: NextRequest) {
     const token = await getAppToken();
     const EBAY_API_LIMIT = 200;
 
-    const promises = selectedBrands.map((brand) => {
+    const promises = searchQueries.map((query) => {
       const searchUrl = `https://api.ebay.com/buy/browse/v1/item_summary/search?q=${encodeURIComponent(
-        brand
+        query
       )}&limit=${EBAY_API_LIMIT}&filter=price:[${minPrice}..${maxPrice}]`;
       return axios.get(searchUrl, {
         headers: {
