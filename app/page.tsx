@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, ChangeEvent, SyntheticEvent, useCallback } from "react";
-import Navbar from "./components/Navbar";
+import * as XLSX from 'xlsx';
 
 interface Bag {
   itemId: string;
@@ -36,13 +36,16 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [resultsCount, setResultsCount] = useState(0);
   const [sortBy, setSortBy] = useState("price-asc");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   const searchBags = useCallback(async (page: number) => {
     setLoading(true);
     setError(null);
 
     const brandsQuery = selectedBrands.join(',');
-    const url = `/api/luxury-bags?page=${page}&itemsPerPage=${itemsPerPage}&sortBy=${sortBy}&minPrice=${minPrice}&maxPrice=${maxPrice}&brands=${brandsQuery}`;
+    const searchParam = searchQuery.trim() ? `&search=${encodeURIComponent(searchQuery.trim())}` : '';
+    const url = `/api/luxury-bags?page=${page}&itemsPerPage=${itemsPerPage}&sortBy=${sortBy}&minPrice=${minPrice}&maxPrice=${maxPrice}&brands=${brandsQuery}${searchParam}`;
 
     try {
       const response = await fetch(url);
@@ -67,11 +70,82 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [selectedBrands, itemsPerPage, sortBy, minPrice, maxPrice]);
+  }, [selectedBrands, itemsPerPage, sortBy, minPrice, maxPrice, searchQuery]);
+
+  const exportToExcel = useCallback(() => {
+    if (bags.length === 0) {
+      alert('No data to export');
+      return;
+    }
+
+    setIsExporting(true);
+    
+    try {
+      // Prepare data for Excel
+      const excelData = bags.map((bag, index) => ({
+        'No.': index + 1,
+        'Title': bag.title,
+        'Price': `$${parseFloat(bag.price.value).toFixed(2)}`,
+        'Currency': bag.price.currency,
+        'Condition': bag.condition || 'Unknown',
+        'Seller': bag.seller?.username || 'Unknown',
+        'Item URL': bag.itemWebUrl || '',
+        'Image URL': bag.image?.imageUrl || bag.thumbnailImages?.[0]?.imageUrl || '',
+        'Item ID': bag.itemId
+      }));
+
+      // Create workbook and worksheet
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Luxury Bags');
+
+      // Set column widths
+      const colWidths = [
+        { wch: 8 },  // No.
+        { wch: 40 }, // Title
+        { wch: 12 }, // Price
+        { wch: 10 }, // Currency
+        { wch: 15 }, // Condition
+        { wch: 20 }, // Seller
+        { wch: 50 }, // Item URL
+        { wch: 50 }, // Image URL
+        { wch: 20 }  // Item ID
+      ];
+      ws['!cols'] = colWidths;
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
+      const filename = `luxury-bags-${timestamp}.xlsx`;
+
+      // Save the file
+      XLSX.writeFile(wb, filename);
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      alert('Failed to export data. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [bags]);
 
   useEffect(() => {
     searchBags(1);
   }, [searchBags]);
+
+  const handleSearch = () => {
+    setCurrentPage(1);
+    searchBags(1);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setCurrentPage(1);
+  };
+
+  const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   const handleBrandChange = (brand: string) => {
     setSelectedBrands((prev) =>
@@ -89,21 +163,47 @@ export default function Home() {
   };
 
   return (
-    <Navbar 
-        bags={bags} 
-        searchParams={{
-          minPrice,
-          maxPrice,
-          selectedBrands
-        }}
-    >
-      <div className="container">
+    <div className="container">
       <div className="header">
         <h1>Luxury Bags Search</h1>
         <p>Find your perfect designer bag from eBay's premium collection</p>
+        <div className="header-actions">
+          <button
+            onClick={exportToExcel}
+            disabled={isExporting || bags.length === 0}
+            className="export-button"
+          >
+            {isExporting ? 'Exporting...' : '📊 Export to Excel'}
+          </button>
+        </div>
       </div>
 
       <div className="filters">
+        <div className="search-section">
+          <div className="search-bar">
+            <label htmlFor="searchQuery">Search</label>
+            <div className="search-input-group">
+              <input
+                type="text"
+                id="searchQuery"
+                placeholder="Search for bags, brands, or keywords..."
+                value={searchQuery}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                onKeyPress={handleSearchKeyPress}
+                className="search-input"
+              />
+              <button onClick={handleSearch} className="search-button">
+                🔍 Search
+              </button>
+              {searchQuery && (
+                <button onClick={handleClearSearch} className="clear-button" title="Clear search">
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         <div className="filter-row">
           <div className="filter-group">
             <label htmlFor="minPrice">Min Price ($)</label>
@@ -212,7 +312,6 @@ export default function Home() {
         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
       )}
     </div>
-    </Navbar>
   );
 }
 
