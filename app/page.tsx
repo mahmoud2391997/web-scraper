@@ -192,7 +192,7 @@ export default function Home() {
         <div className="search-section">
           <div className="search-bar">
             <label htmlFor="searchQuery">Search</label>
-            <div className="search-input-group">
+            <div className="search-container">
               <input
                 type="text"
                 id="searchQuery"
