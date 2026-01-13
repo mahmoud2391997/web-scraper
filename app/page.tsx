@@ -5,13 +5,14 @@ import * as XLSX from 'xlsx';
 
 interface Bag {
   itemId: string;
+  price: { value: string; currency: string };
+  title: string;
+  condition?: string;
+  seller?: { username: string; feedbackPercentage?: string; feedbackScore?: number };
   image?: { imageUrl: string };
   thumbnailImages?: { imageUrl: string }[];
-  title: string;
-  price: { value: string; currency: string };
-  condition?: string;
-  seller?: { username: string };
   itemWebUrl?: string;
+  listingMarketplaceId?: string;
 }
 
 interface BagCardProps {
@@ -393,6 +394,7 @@ const BagCard = ({ bag }: BagCardProps) => {
   const condition = bag.condition || "Unknown";
   const seller = bag.seller?.username || "Unknown Seller";
   const itemUrl = bag.itemWebUrl || "#";
+  const isVintedItem = bag.listingMarketplaceId?.startsWith("VINTED");
 
   return (
     <div className="bag-card" onClick={() => window.open(itemUrl, "_blank")}>
@@ -410,7 +412,7 @@ const BagCard = ({ bag }: BagCardProps) => {
         <div className="bag-condition">{condition}</div>
         <div className="bag-seller">Seller: {seller}</div>
         <a href={itemUrl} target="_blank" rel="noopener noreferrer" className="bag-link" onClick={(e) => e.stopPropagation()}>
-          View on eBay
+          View on {isVintedItem ? "Vinted" : "eBay"}
         </a>
       </div>
     </div>
