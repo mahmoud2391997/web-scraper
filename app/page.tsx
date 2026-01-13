@@ -373,7 +373,7 @@ export default function Home() {
       {!loading && resultsCount > 0 && (
         <div id="resultsInfo" className="results-info">
           <div className="results-count">
-            <strong>{resultsCount}</strong> bags found
+            Showing <strong>{bags.length}</strong> of <strong>{resultsCount}</strong> bags found
           </div>
           <div className="sort-options">
             <label>Sort by:</label>
