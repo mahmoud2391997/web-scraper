@@ -39,6 +39,16 @@ export default function Home() {
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(1000);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+
+  const allBrands = [
+    "Dior bag",
+    "Louis Vuitton bag", 
+    "Prada bag",
+    "Gucci bag",
+    "Christian Dior bag",
+    "Michael Kors bag",
+    "Coach bag",
+  ];
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resultsCount, setResultsCount] = useState(0);
@@ -215,11 +225,7 @@ export default function Home() {
   };
 
   const handleBrandChange = (brand: string) => {
-    setSelectedBrands((prev) =>
-      prev.includes(brand)
-        ? prev.filter((item) => item !== brand)
-        : [...prev, brand]
-    );
+    setSelectedBrands([brand]); // Only allow one brand at a time
   };
 
   const handlePageChange = (pageNumber: number) => {
@@ -355,21 +361,13 @@ export default function Home() {
         <div className="filter-group">
           <label>Brands</label>
           <div className="brand-checkboxes">
-            {[
-              "Dior bag",
-              "Louis Vuitton bag",
-              "Prada bag",
-              "Gucci bag",
-              "Christian Dior bag",
-              "Michael Kors bag",
-              "Coach bag",
-            ].map((brand) => (
+            {allBrands.map((brand) => (
               <div
                 key={brand}
                 className={`brand-checkbox ${selectedBrands.includes(brand) ? "selected" : ""}`}
                 onClick={() => handleBrandChange(brand)}
               >
-                <input type="checkbox" value={brand} checked={selectedBrands.includes(brand)} readOnly />
+                <input type="radio" name="brand" value={brand} checked={selectedBrands.includes(brand)} readOnly />
                 <span>{brand.replace(" bag", "")}</span>
               </div>
             ))}
