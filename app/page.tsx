@@ -85,7 +85,8 @@ export default function Home() {
       vintedParams.append("min_price", minPrice.toString());
       vintedParams.append("max_price", maxPrice.toString());
       vintedParams.append("country", selectedCountry === "ALL" ? "pl" : selectedCountry.replace("EBAY_", "").toLowerCase());
-      vintedParams.append("pages", page.toString()); // Use current page for pagination
+      vintedParams.append("page", page.toString()); // Use page parameter for pagination
+      vintedParams.append("items_per_page", itemsPerPage.toString()); // Use items_per_page for pagination
       
       url = `/vinted?${vintedParams.toString()}`;
     } else {

@@ -5,14 +5,25 @@ interface VintedItem {
   Price: string;
   Brand: string;
   Size: string;
-  Image: string;  // Changed from ImageURL to Image
-  Link: string;   // Changed from URL to Link
+  Image: string;
+  Link: string;
+}
+
+interface VintedPagination {
+  current_page: number;
+  items_per_page: number;
+  total_items: number;
+  total_pages: number;
+  has_more: boolean;
+  start_index: number;
+  end_index: number;
 }
 
 interface VintedResponse {
   success: boolean;
   data: VintedItem[];
   count: number;
+  pagination: VintedPagination;
   error: string | null;
 }
 
@@ -25,59 +36,46 @@ export async function GET(request: NextRequest) {
   const minPrice = searchParams.get("min_price") || "";
   const maxPrice = searchParams.get("max_price") || "";
   const country = searchParams.get("country") || "pl";
-  const pages = parseInt(searchParams.get("pages") || "1");
+  const page = parseInt(searchParams.get("page") || "1");
+  const itemsPerPage = parseInt(searchParams.get("items_per_page") || "24");
 
   try {
-    let allItems: VintedItem[] = [];
-    let totalCount = 0;
+    // Build Vinted API URL
+    const vintedApiUrl = new URL("https://vinted-scraping.vercel.app/");
+    
+    if (search) vintedApiUrl.searchParams.append("search", search);
+    if (brand) vintedApiUrl.searchParams.append("brand", brand);
+    if (category) vintedApiUrl.searchParams.append("category", category);
+    if (minPrice) vintedApiUrl.searchParams.append("min_price", minPrice);
+    if (maxPrice) vintedApiUrl.searchParams.append("max_price", maxPrice);
+    if (country) vintedApiUrl.searchParams.append("country", country);
+    vintedApiUrl.searchParams.append("page", page.toString());
+    vintedApiUrl.searchParams.append("items_per_page", itemsPerPage.toString());
 
-    // Fetch data for each page
-    for (let page = 1; page <= pages; page++) {
-      // Build Vinted API URL
-      const vintedApiUrl = new URL("https://vinted-scraping.vercel.app/api");
-      
-      if (search) vintedApiUrl.searchParams.append("search", search);
-      if (brand) vintedApiUrl.searchParams.append("brand", brand);
-      if (category) vintedApiUrl.searchParams.append("category", category);
-      if (minPrice) vintedApiUrl.searchParams.append("min_price", minPrice);
-      if (maxPrice) vintedApiUrl.searchParams.append("max_price", maxPrice);
-      if (country) vintedApiUrl.searchParams.append("country", country);
-      vintedApiUrl.searchParams.append("pages", page.toString());
+    console.log("Fetching Vinted data from:", vintedApiUrl.toString());
 
-      console.log(`Fetching Vinted data from page ${page}:`, vintedApiUrl.toString());
-
-      const response = await fetch(vintedApiUrl.toString(), {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
-      });
-
-      if (!response.ok) {
-        console.log("Vinted API response status:", response.status, response.statusText);
-        throw new Error(`Vinted API error: ${response.status} ${response.statusText}`);
+    const response = await fetch(vintedApiUrl.toString(), {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
       }
+    });
 
-      const vintedData: VintedResponse = await response.json();
+    if (!response.ok) {
+      console.log("Vinted API response status:", response.status, response.statusText);
+      throw new Error(`Vinted API error: ${response.status} ${response.statusText}`);
+    }
 
-      if (!vintedData.success) {
-        console.log("Vinted API error response:", vintedData);
-        throw new Error(vintedData.error || "Vinted API returned error");
-      }
+    const vintedData: VintedResponse = await response.json();
 
-      // Add items from this page
-      allItems = [...allItems, ...vintedData.data];
-      totalCount += vintedData.count;
-
-      // Add small delay between requests to avoid rate limiting
-      if (page < pages) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
+    if (!vintedData.success) {
+      console.log("Vinted API error response:", vintedData);
+      throw new Error(vintedData.error || "Vinted API returned error");
     }
 
     // Transform Vinted data to match our existing Item structure
-    const transformedItems = allItems.map((item, index) => ({
+    const transformedItems = vintedData.data.map((item: VintedItem, index: number) => ({
       itemId: `vinted_${index}_${Date.now()}`,
       title: item.Title,
       price: {
@@ -115,9 +113,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       items: transformedItems,
-      totalResults: totalCount,
-      totalPages: pages,
-      currentPage: 1,
+      totalResults: vintedData.pagination.total_items,
+      totalPages: vintedData.pagination.total_pages,
+      currentPage: vintedData.pagination.current_page,
       message: "Vinted search completed successfully."
     });
 
