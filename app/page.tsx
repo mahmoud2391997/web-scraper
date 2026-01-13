@@ -79,9 +79,30 @@ export default function Home() {
     }
   }, []);
 
+  // Handle brand filter changes for Vinted
+  useEffect(() => {
+    if (selectedPlatform === "vinted" && selectedBrands.length > 0) {
+      const brandSearch = selectedBrands.join(" ");
+      setSearchQuery(brandSearch);
+    }
+  }, [selectedBrands, selectedPlatform]);
+
+  // Handle search query changes for Vinted (debounced)
+  useEffect(() => {
+    if (selectedPlatform === "vinted") {
+      if (searchQuery.trim()) {
+        // Only clear brand filters if search is different from current brand search
+        const currentBrandSearch = selectedBrands.join(" ");
+        if (searchQuery !== currentBrandSearch) {
+          setSelectedBrands([]);
+        }
+      }
+    }
+  }, [searchQuery, selectedPlatform, selectedBrands]);
+
   // Client-side price filtering for Vinted
   useEffect(() => {
-    if (selectedPlatform === "vinted" && allBags.length > 0) {
+    if (selectedPlatform === "vinted" && allBags.length > 0 && !loading) {
       const filtered = allBags.filter(bag => {
         const price = parseFloat(bag.price.value.replace(/[^\d.]/g, ''));
         return price >= minPrice && price <= maxPrice;
@@ -96,7 +117,7 @@ export default function Home() {
       setTotalPages(Math.ceil(filtered.length / itemsPerPage));
       setResultsCount(filtered.length);
     }
-  }, [allBags, selectedPlatform, minPrice, maxPrice, currentPage, itemsPerPage]);
+  }, [allBags, selectedPlatform, minPrice, maxPrice, currentPage, itemsPerPage, loading]);
 
   const searchBags = useCallback(async (page: number) => {
     setLoading(true);
@@ -108,24 +129,24 @@ export default function Home() {
     
     let url;
     if (selectedPlatform === "vinted") {
-      // Vinted API parameters
+      // Vinted: Use search query if exists, otherwise use brands
+      const vintedSearch = hasSearchQuery ? searchQuery : (selectedBrands.length > 0 ? selectedBrands.join(" ") : "");
       const vintedParams = new URLSearchParams();
       
-      // Use search query for Vinted (includes brand filters when they're added to search)
-      if (hasSearchQuery) {
-        vintedParams.append("search", searchQuery.trim());
+      if (vintedSearch) {
+        vintedParams.append("search", vintedSearch);
       }
       
       // Add brand filter if selected and not already in search
-      if (selectedBrands.length > 0 && !searchQuery.toLowerCase().includes(selectedBrands[0].toLowerCase())) {
+      if (selectedBrands.length > 0 && !vintedSearch.toLowerCase().includes(selectedBrands[0].toLowerCase())) {
         vintedParams.append("brand", selectedBrands[0].replace(" bag", ""));
       }
       
       vintedParams.append("min_price", minPrice.toString());
       vintedParams.append("max_price", maxPrice.toString());
       vintedParams.append("country", selectedCountry === "ALL" ? "pl" : selectedCountry.replace("EBAY_", "").toLowerCase());
-      vintedParams.append("page", page.toString()); // Use page parameter for pagination
-      vintedParams.append("items_per_page", itemsPerPage.toString()); // Use items_per_page for pagination
+      vintedParams.append("page", page.toString());
+      vintedParams.append("items_per_page", itemsPerPage.toString());
       
       url = `/vinted?${vintedParams.toString()}`;
     } else {
