@@ -27,10 +27,22 @@ interface PaginationProps {
 
 export default function Home() {
   const [bags, setBags] = useState<Bag[]>([]);
-  const [allBags, setAllBags] = useState<Bag[]>([]); // Store all Vinted results for client-side filtering
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(24);
+
+  // Handle price changes - trigger search for both platforms
+  const handleMinPriceChange = (value: number) => {
+    setMinPrice(value);
+    setCurrentPage(1); // Reset to first page
+    searchBags(1); // Trigger search
+  };
+
+  const handleMaxPriceChange = (value: number) => {
+    setMaxPrice(value);
+    setCurrentPage(1); // Reset to first page
+    searchBags(1); // Trigger search
+  };
 
   // Reset to first page when changing items per page
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
@@ -38,7 +50,7 @@ export default function Home() {
     setCurrentPage(1); // Reset to first page when changing items per page
   };
   const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(1000);
+  const [maxPrice, setMaxPrice] = useState(0); // Start with empty price filters
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
 
   const allBrands = [
@@ -65,10 +77,6 @@ export default function Home() {
       setSearchQuery("dior bags");
     } else if (selectedPlatform === "ebay" && searchQuery === "dior bags") {
       setSearchQuery("");
-    }
-    // Clear allBags when switching platforms
-    if (selectedPlatform === "ebay") {
-      setAllBags([]);
     }
   }, [selectedPlatform, searchQuery]);
 
@@ -104,40 +112,6 @@ export default function Home() {
       }
     }
   }, [searchQuery, selectedPlatform, selectedBrands]);
-
-  // Client-side price filtering for Vinted
-  useEffect(() => {
-    if (selectedPlatform === "vinted" && allBags.length > 0 && !loading) {
-      console.log("Applying Vinted client-side filtering:", {
-        allBagsCount: allBags.length,
-        minPrice,
-        maxPrice,
-        currentPage,
-        itemsPerPage
-      });
-      
-      const filtered = allBags.filter(bag => {
-        const price = parseFloat(bag.price.value.replace(/[^\d.]/g, ''));
-        return price >= minPrice && price <= maxPrice;
-      });
-      
-      // Paginate filtered results
-      const startIndex = (currentPage - 1) * itemsPerPage;
-      const endIndex = startIndex + itemsPerPage;
-      const paginatedResults = filtered.slice(startIndex, endIndex);
-      
-      console.log("Vinted filtered results:", {
-        filteredCount: filtered.length,
-        startIndex,
-        endIndex,
-        paginatedCount: paginatedResults.length
-      });
-      
-      setBags(paginatedResults);
-      setTotalPages(Math.ceil(filtered.length / itemsPerPage));
-      setResultsCount(filtered.length);
-    }
-  }, [allBags, selectedPlatform, minPrice, maxPrice, currentPage, itemsPerPage, loading]);
 
   const searchBags = useCallback(async (page: number) => {
     setLoading(true);
@@ -189,13 +163,8 @@ export default function Home() {
       }
       const data = await response.json();
       if (data.success) {
-        if (selectedPlatform === "vinted") {
-          // Store all results for client-side filtering
-          setAllBags(data.items);
-        } else {
-          // eBay results - set directly
-          setBags(data.items);
-        }
+        // Set results directly for both platforms (server-side filtering)
+        setBags(data.items);
         setResultsCount(data.totalResults);
         setTotalPages(data.totalPages);
         setCurrentPage(data.currentPage);
@@ -391,19 +360,17 @@ export default function Home() {
               id="minPrice"
               value={minPrice}
               min="0"
-              step="10"
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setMinPrice(parseInt(e.target.value) || 0)}
+              step="50"
+              onChange={(e: ChangeEvent<HTMLInputElement>) => handleMinPriceChange(parseInt(e.target.value) || 0)}
             />
-          </div>
-          <div className="filter-group">
-            <label htmlFor="maxPrice">Max Price (€)</label>
+            <span>-</span>
             <input
               type="number"
               id="maxPrice"
               value={maxPrice}
               min="0"
               step="50"
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setMaxPrice(parseInt(e.target.value) || 0)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => handleMaxPriceChange(parseInt(e.target.value) || 0)}
             />
           </div>
           <div className="filter-group">
