@@ -42,6 +42,23 @@ export default function Home() {
   const [selectedCountry, setSelectedCountry] = useState("ALL");
   const [selectedPlatform, setSelectedPlatform] = useState("ebay"); // "ebay" or "vinted"
 
+  // Auto-populate search when switching to Vinted
+  useEffect(() => {
+    if (selectedPlatform === "vinted" && !searchQuery.trim()) {
+      setSearchQuery("dior bags");
+    } else if (selectedPlatform === "ebay" && searchQuery === "dior bags") {
+      setSearchQuery("");
+    }
+  }, [selectedPlatform, searchQuery]);
+
+  // Handle brand filter changes for Vinted
+  useEffect(() => {
+    if (selectedPlatform === "vinted" && selectedBrands.length > 0) {
+      const brandSearch = selectedBrands.join(" ");
+      setSearchQuery(brandSearch);
+    }
+  }, [selectedBrands, selectedPlatform]);
+
   const searchBags = useCallback(async (page: number) => {
     setLoading(true);
     setError(null);
@@ -54,12 +71,21 @@ export default function Home() {
     if (selectedPlatform === "vinted") {
       // Vinted API parameters
       const vintedParams = new URLSearchParams();
-      if (hasSearchQuery) vintedParams.append("search", searchQuery.trim());
-      if (selectedBrands.length > 0) vintedParams.append("brand", selectedBrands[0].replace(" bag", ""));
+      
+      // Use search query for Vinted (includes brand filters when they're added to search)
+      if (hasSearchQuery) {
+        vintedParams.append("search", searchQuery.trim());
+      }
+      
+      // Add brand filter if selected and not already in search
+      if (selectedBrands.length > 0 && !searchQuery.toLowerCase().includes(selectedBrands[0].toLowerCase())) {
+        vintedParams.append("brand", selectedBrands[0].replace(" bag", ""));
+      }
+      
       vintedParams.append("min_price", minPrice.toString());
       vintedParams.append("max_price", maxPrice.toString());
       vintedParams.append("country", selectedCountry === "ALL" ? "pl" : selectedCountry.replace("EBAY_", "").toLowerCase());
-      vintedParams.append("pages", "1");
+      vintedParams.append("pages", page.toString()); // Use current page for pagination
       
       url = `/vinted?${vintedParams.toString()}`;
     } else {

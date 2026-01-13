@@ -28,41 +28,56 @@ export async function GET(request: NextRequest) {
   const pages = parseInt(searchParams.get("pages") || "1");
 
   try {
-    // Build Vinted API URL
-    const vintedApiUrl = new URL("https://vinted-scraping.vercel.app/");
-    
-    if (search) vintedApiUrl.searchParams.append("search", search);
-    if (brand) vintedApiUrl.searchParams.append("brand", brand);
-    if (category) vintedApiUrl.searchParams.append("category", category);
-    if (minPrice) vintedApiUrl.searchParams.append("min_price", minPrice);
-    if (maxPrice) vintedApiUrl.searchParams.append("max_price", maxPrice);
-    if (country) vintedApiUrl.searchParams.append("country", country);
-    vintedApiUrl.searchParams.append("pages", pages.toString());
+    let allItems: VintedItem[] = [];
+    let totalCount = 0;
 
-    console.log("Fetching Vinted data from:", vintedApiUrl.toString());
+    // Fetch data for each page
+    for (let page = 1; page <= pages; page++) {
+      // Build Vinted API URL
+      const vintedApiUrl = new URL("https://vinted-scraping.vercel.app/api");
+      
+      if (search) vintedApiUrl.searchParams.append("search", search);
+      if (brand) vintedApiUrl.searchParams.append("brand", brand);
+      if (category) vintedApiUrl.searchParams.append("category", category);
+      if (minPrice) vintedApiUrl.searchParams.append("min_price", minPrice);
+      if (maxPrice) vintedApiUrl.searchParams.append("max_price", maxPrice);
+      if (country) vintedApiUrl.searchParams.append("country", country);
+      vintedApiUrl.searchParams.append("pages", page.toString());
 
-    const response = await fetch(vintedApiUrl.toString(), {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+      console.log(`Fetching Vinted data from page ${page}:`, vintedApiUrl.toString());
+
+      const response = await fetch(vintedApiUrl.toString(), {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+      });
+
+      if (!response.ok) {
+        console.log("Vinted API response status:", response.status, response.statusText);
+        throw new Error(`Vinted API error: ${response.status} ${response.statusText}`);
       }
-    });
 
-    if (!response.ok) {
-      console.log("Vinted API response status:", response.status, response.statusText);
-      throw new Error(`Vinted API error: ${response.status} ${response.statusText}`);
-    }
+      const vintedData: VintedResponse = await response.json();
 
-    const vintedData: VintedResponse = await response.json();
+      if (!vintedData.success) {
+        console.log("Vinted API error response:", vintedData);
+        throw new Error(vintedData.error || "Vinted API returned error");
+      }
 
-    if (!vintedData.success) {
-      console.log("Vinted API error response:", vintedData);
-      throw new Error(vintedData.error || "Vinted API returned error");
+      // Add items from this page
+      allItems = [...allItems, ...vintedData.data];
+      totalCount += vintedData.count;
+
+      // Add small delay between requests to avoid rate limiting
+      if (page < pages) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
 
     // Transform Vinted data to match our existing Item structure
-    const transformedItems = vintedData.data.map((item, index) => ({
+    const transformedItems = allItems.map((item, index) => ({
       itemId: `vinted_${index}_${Date.now()}`,
       title: item.Title,
       price: {
@@ -100,7 +115,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       items: transformedItems,
-      totalResults: vintedData.count,
+      totalResults: totalCount,
       totalPages: pages,
       currentPage: 1,
       message: "Vinted search completed successfully."
