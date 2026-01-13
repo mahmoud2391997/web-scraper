@@ -68,6 +68,54 @@ body {
   border-bottom: 1px solid #e9ecef;
 }
 
+.platform-toggle {
+  margin-bottom: 25px;
+}
+
+.platform-toggle label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #495057;
+  font-size: 18px;
+}
+
+.platform-buttons {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.platform-button {
+  padding: 12px 24px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  background: white;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.platform-button:hover {
+  border-color: #667eea;
+  background: #f8f9ff;
+  transform: translateY(-1px);
+}
+
+.platform-button.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.platform-button.active:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
 .filter-row {
   display: flex;
   gap: 20px;

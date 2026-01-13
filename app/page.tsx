@@ -39,6 +39,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState("ALL");
+  const [selectedPlatform, setSelectedPlatform] = useState("ebay"); // "ebay" or "vinted"
 
   const searchBags = useCallback(async (page: number) => {
     setLoading(true);
@@ -49,13 +50,27 @@ export default function Home() {
     const hasSearchQuery = searchQuery.trim().length > 0;
     
     let url;
-    if (hasSearchQuery) {
-      // Search entire site with query
-      url = `/api/luxury-bags?page=${page}&itemsPerPage=${itemsPerPage}&sortBy=${sortBy}&minPrice=${minPrice}&maxPrice=${maxPrice}&search=${encodeURIComponent(searchQuery.trim())}&country=${selectedCountry}`;
+    if (selectedPlatform === "vinted") {
+      // Vinted API parameters
+      const vintedParams = new URLSearchParams();
+      if (hasSearchQuery) vintedParams.append("search", searchQuery.trim());
+      if (selectedBrands.length > 0) vintedParams.append("brand", selectedBrands[0].replace(" bag", ""));
+      vintedParams.append("min_price", minPrice.toString());
+      vintedParams.append("max_price", maxPrice.toString());
+      vintedParams.append("country", selectedCountry === "ALL" ? "pl" : selectedCountry.replace("EBAY_", "").toLowerCase());
+      vintedParams.append("pages", "1");
+      
+      url = `/vinted?${vintedParams.toString()}`;
     } else {
-      // Use brand filters when no search query
-      const brandsQuery = selectedBrands.join(',');
-      url = `/api/luxury-bags?page=${page}&itemsPerPage=${itemsPerPage}&sortBy=${sortBy}&minPrice=${minPrice}&maxPrice=${maxPrice}&brands=${brandsQuery}&country=${selectedCountry}`;
+      // eBay API parameters
+      if (hasSearchQuery) {
+        // Search entire site with query
+        url = `/api/luxury-bags?page=${page}&itemsPerPage=${itemsPerPage}&sortBy=${sortBy}&minPrice=${minPrice}&maxPrice=${maxPrice}&search=${encodeURIComponent(searchQuery.trim())}&country=${selectedCountry}`;
+      } else {
+        // Use brand filters when no search query
+        const brandsQuery = selectedBrands.join(',');
+        url = `/api/luxury-bags?page=${page}&itemsPerPage=${itemsPerPage}&sortBy=${sortBy}&minPrice=${minPrice}&maxPrice=${maxPrice}&brands=${brandsQuery}&country=${selectedCountry}`;
+      }
     }
 
     try {
@@ -81,7 +96,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [selectedBrands, itemsPerPage, sortBy, minPrice, maxPrice, searchQuery, selectedCountry]);
+  }, [selectedBrands, itemsPerPage, sortBy, minPrice, maxPrice, searchQuery, selectedCountry, selectedPlatform]);
 
   const exportToExcel = useCallback(() => {
     if (bags.length === 0) {
@@ -190,6 +205,24 @@ export default function Home() {
       </div>
 
       <div className="filters">
+        <div className="platform-toggle">
+          <label>Platform</label>
+          <div className="platform-buttons">
+            <button
+              className={`platform-button ${selectedPlatform === "ebay" ? "active" : ""}`}
+              onClick={() => setSelectedPlatform("ebay")}
+            >
+              🛒 eBay
+            </button>
+            <button
+              className={`platform-button ${selectedPlatform === "vinted" ? "active" : ""}`}
+              onClick={() => setSelectedPlatform("vinted")}
+            >
+              👗 Vinted
+            </button>
+          </div>
+        </div>
+
         <div className="search-section">
           <div className="search-bar">
             <label htmlFor="searchQuery">Search</label>

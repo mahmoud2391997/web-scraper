@@ -38,6 +38,17 @@ interface Item {
 }
 
 export async function GET(request: NextRequest) {
+  const { pathname } = new URL(request.url);
+  
+  // Route Vinted requests to Vinted route
+  if (pathname.includes('/vinted')) {
+    // Forward to Vinted route
+    const vintedUrl = new URL(request.url, `http://localhost:3000/vinted`);
+    const response = await fetch(vintedUrl.toString());
+    const data = await response.json();
+    return NextResponse.json(data);
+  }
+
   const { searchParams } = new URL(request.url);
 
   const page = parseInt(searchParams.get("page") || "1");
