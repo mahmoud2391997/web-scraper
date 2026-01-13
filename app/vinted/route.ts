@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Build Vinted API URL
-    const vintedApiUrl = new URL("https://vinted-scraping.vercel.app/api");
+    const vintedApiUrl = new URL("https://vinted-scraping.vercel.app/");
     
     if (search) vintedApiUrl.searchParams.append("search", search);
     if (brand) vintedApiUrl.searchParams.append("brand", brand);
