@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     if (search) vintedApiUrl.searchParams.append("search", search);
     if (brand) vintedApiUrl.searchParams.append("brand", brand);
     if (category) vintedApiUrl.searchParams.append("category", category);
-    if (minPrice) vintedApiUrl.searchParams.append("min_price", minPrice.toString());
+    if (minPrice) vintedApiUrl.searchParams.append("min_price", minPrice);
     if (maxPrice) vintedApiUrl.searchParams.append("max_price", maxPrice.toString());
     if (country) vintedApiUrl.searchParams.append("country", country);
     vintedApiUrl.searchParams.append("page", page.toString());

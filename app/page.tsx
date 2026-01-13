@@ -30,28 +30,16 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(24);
-
-  // Handle price changes - trigger search for both platforms
-  const handleMinPriceChange = (value: number) => {
-    setMinPrice(value);
-    setCurrentPage(1); // Reset to first page
-    searchBags(1); // Trigger search
-  };
-
-  const handleMaxPriceChange = (value: number) => {
-    setMaxPrice(value);
-    setCurrentPage(1); // Reset to first page
-    searchBags(1); // Trigger search
-  };
+  const [minPrice, setMinPrice] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(1000);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedPlatform, setSelectedPlatform] = useState<"ebay" | "vinted">("ebay");
 
   // Reset to first page when changing items per page
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1); // Reset to first page when changing items per page
   };
-  const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(0); // Start with empty price filters
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
 
   const allBrands = [
     "Dior bag",
@@ -69,23 +57,43 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState("ALL");
-  const [selectedPlatform, setSelectedPlatform] = useState("ebay"); // "ebay" or "vinted"
 
-  // Auto-populate search when switching to Vinted
-  useEffect(() => {
-    if (selectedPlatform === "vinted" && !searchQuery.trim()) {
-      setSearchQuery("dior bags");
-    } else if (selectedPlatform === "ebay" && searchQuery === "dior bags") {
-      setSearchQuery("");
+  // Platform-specific state configurations
+  const platformConfigs = {
+    ebay: {
+      defaultSearchQuery: "",
+      defaultBrands: ["Dior bag"],
+      defaultCountry: "ALL",
+      defaultItemsPerPage: 24,
+      defaultMinPrice: 0,
+      defaultMaxPrice: 1000
+    },
+    vinted: {
+      defaultSearchQuery: "dior bags",
+      defaultBrands: ["Dior bag"],
+      defaultCountry: "pl",
+      defaultItemsPerPage: 24,
+      defaultMinPrice: 0,
+      defaultMaxPrice: 1000
     }
-  }, [selectedPlatform, searchQuery]);
+  };
 
-  // Set default Dior brand filter on initial load
+  // Handle platform switching with proper state management
   useEffect(() => {
-    if (selectedBrands.length === 0) {
-      setSelectedBrands(["Dior bag"]);
-    }
-  }, []);
+    const config = platformConfigs[selectedPlatform];
+    
+    // Reset to platform-specific defaults when switching
+    setSearchQuery(config.defaultSearchQuery);
+    setSelectedBrands(config.defaultBrands);
+    setSelectedCountry(config.defaultCountry);
+    setItemsPerPage(config.defaultItemsPerPage);
+    setMinPrice(config.defaultMinPrice);
+    setMaxPrice(config.defaultMaxPrice);
+    setCurrentPage(1);
+    setBags([]); // Clear previous results
+    setResultsCount(0); // Reset results count
+    setTotalPages(0); // Reset total pages
+  }, [selectedPlatform]);
 
   // Handle brand filter changes for Vinted
   useEffect(() => {
@@ -94,24 +102,6 @@ export default function Home() {
       setSearchQuery(brandSearch);
     }
   }, [selectedBrands, selectedPlatform]);
-
-  // Handle search query changes for Vinted (debounced)
-  useEffect(() => {
-    if (selectedPlatform === "vinted") {
-      if (searchQuery.trim()) {
-        // Only clear brand filters if search is different from current brand search
-        const currentBrandSearch = selectedBrands.join(" ");
-        if (searchQuery !== currentBrandSearch) {
-          setSelectedBrands([]);
-        }
-      } else {
-        // When search is cleared, restore default Dior
-        if (selectedBrands.length === 0) {
-          setSelectedBrands(["Dior bag"]);
-        }
-      }
-    }
-  }, [searchQuery, selectedPlatform, selectedBrands]);
 
   const searchBags = useCallback(async (page: number) => {
     setLoading(true);
@@ -123,24 +113,24 @@ export default function Home() {
     
     let url;
     if (selectedPlatform === "vinted") {
-      // Vinted: Use search query if exists, otherwise use brands
-      const vintedSearch = hasSearchQuery ? searchQuery : (selectedBrands.length > 0 ? selectedBrands.join(" ") : "");
+      // Vinted API parameters
       const vintedParams = new URLSearchParams();
       
-      if (vintedSearch) {
-        vintedParams.append("search", vintedSearch);
+      // Use search query for Vinted (includes brand filters when they're added to search)
+      if (hasSearchQuery) {
+        vintedParams.append("search", searchQuery.trim());
       }
       
       // Add brand filter if selected and not already in search
-      if (selectedBrands.length > 0 && !vintedSearch.toLowerCase().includes(selectedBrands[0].toLowerCase())) {
+      if (selectedBrands.length > 0 && !searchQuery.toLowerCase().includes(selectedBrands[0].toLowerCase())) {
         vintedParams.append("brand", selectedBrands[0].replace(" bag", ""));
       }
       
       vintedParams.append("min_price", minPrice.toString());
       vintedParams.append("max_price", maxPrice.toString());
       vintedParams.append("country", selectedCountry === "ALL" ? "pl" : selectedCountry.replace("EBAY_", "").toLowerCase());
-      vintedParams.append("page", page.toString());
-      vintedParams.append("items_per_page", itemsPerPage.toString());
+      vintedParams.append("page", page.toString()); // Use page parameter for pagination
+      vintedParams.append("items_per_page", itemsPerPage.toString()); // Use items_per_page for pagination
       
       url = `/vinted?${vintedParams.toString()}`;
     } else {
@@ -163,7 +153,6 @@ export default function Home() {
       }
       const data = await response.json();
       if (data.success) {
-        // Set results directly for both platforms (server-side filtering)
         setBags(data.items);
         setResultsCount(data.totalResults);
         setTotalPages(data.totalPages);
@@ -360,17 +349,19 @@ export default function Home() {
               id="minPrice"
               value={minPrice}
               min="0"
-              step="50"
-              onChange={(e: ChangeEvent<HTMLInputElement>) => handleMinPriceChange(parseInt(e.target.value) || 0)}
+              step="10"
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setMinPrice(parseInt(e.target.value) || 0)}
             />
-            <span>-</span>
+          </div>
+          <div className="filter-group">
+            <label htmlFor="maxPrice">Max Price (€)</label>
             <input
               type="number"
               id="maxPrice"
               value={maxPrice}
               min="0"
               step="50"
-              onChange={(e: ChangeEvent<HTMLInputElement>) => handleMaxPriceChange(parseInt(e.target.value) || 0)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setMaxPrice(parseInt(e.target.value) || 0)}
             />
           </div>
           <div className="filter-group">

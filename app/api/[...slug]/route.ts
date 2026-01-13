@@ -139,9 +139,16 @@ export async function GET(request: NextRequest) {
     const responses = await Promise.allSettled(promises);
 
     let allItems: Item[] = [];
-    responses.forEach((response) => {
-      if (response.status === "fulfilled" && response.value && response.value.data && response.value.data.itemSummaries) {
-        allItems = allItems.concat(response.value.data.itemSummaries);
+    responses.forEach((response, index) => {
+      if (response.status === "fulfilled") {
+        if (response.value && response.value.data && response.value.data.itemSummaries) {
+          allItems = allItems.concat(response.value.data.itemSummaries);
+          console.log(`eBay API success - got ${response.value.data.itemSummaries.length} items`);
+        } else {
+          console.log(`eBay API response - no items found:`, response.value?.data);
+        }
+      } else {
+        console.log(`eBay API error:`, response.reason);
       }
     });
 
