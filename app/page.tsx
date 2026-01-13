@@ -27,6 +27,7 @@ interface PaginationProps {
 
 export default function Home() {
   const [bags, setBags] = useState<Bag[]>([]);
+  const [allBags, setAllBags] = useState<Bag[]>([]); // Store all Vinted results for client-side filtering
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(24);
@@ -65,6 +66,10 @@ export default function Home() {
     } else if (selectedPlatform === "ebay" && searchQuery === "dior bags") {
       setSearchQuery("");
     }
+    // Clear allBags when switching platforms
+    if (selectedPlatform === "ebay") {
+      setAllBags([]);
+    }
   }, [selectedPlatform, searchQuery]);
 
   // Set default Dior brand filter on initial load
@@ -74,13 +79,24 @@ export default function Home() {
     }
   }, []);
 
-  // Handle brand filter changes for Vinted
+  // Client-side price filtering for Vinted
   useEffect(() => {
-    if (selectedPlatform === "vinted" && selectedBrands.length > 0) {
-      const brandSearch = selectedBrands.join(" ");
-      setSearchQuery(brandSearch);
+    if (selectedPlatform === "vinted" && allBags.length > 0) {
+      const filtered = allBags.filter(bag => {
+        const price = parseFloat(bag.price.value.replace(/[^\d.]/g, ''));
+        return price >= minPrice && price <= maxPrice;
+      });
+      
+      // Paginate filtered results
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const paginatedResults = filtered.slice(startIndex, endIndex);
+      
+      setBags(paginatedResults);
+      setTotalPages(Math.ceil(filtered.length / itemsPerPage));
+      setResultsCount(filtered.length);
     }
-  }, [selectedBrands, selectedPlatform]);
+  }, [allBags, selectedPlatform, minPrice, maxPrice, currentPage, itemsPerPage]);
 
   const searchBags = useCallback(async (page: number) => {
     setLoading(true);
@@ -132,7 +148,13 @@ export default function Home() {
       }
       const data = await response.json();
       if (data.success) {
-        setBags(data.items);
+        if (selectedPlatform === "vinted") {
+          // Store all results for client-side filtering
+          setAllBags(data.items);
+        } else {
+          // eBay results - set directly
+          setBags(data.items);
+        }
         setResultsCount(data.totalResults);
         setTotalPages(data.totalPages);
         setCurrentPage(data.currentPage);
