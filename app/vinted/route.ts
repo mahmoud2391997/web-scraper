@@ -74,26 +74,28 @@ export async function GET(request: NextRequest) {
       throw new Error(vintedData.error || "Vinted API returned error");
     }
 
-    // Transform Vinted data to match our existing Item structure
+    // Transform Vinted items to match our interface
     const transformedItems = vintedData.data.map((item: VintedItem, index: number) => ({
-      itemId: `vinted_${index}_${Date.now()}`,
+      itemId: `vinted_${index}_${item.Link.split('/').pop() || ''}`,
       title: item.Title,
       price: {
         value: item.Price,
-        currency: item.Price.includes('zł') ? 'PLN' : 'EUR' // Extract currency from price
+        currency: item.Price.includes('zł') ? 'PLN' : 'EUR'
       },
-      condition: "Unknown", // Vinted doesn't provide condition
+      condition: "Unknown",
       seller: {
         username: "Vinted Seller",
         feedbackPercentage: "100.0",
         feedbackScore: 0
       },
       image: {
-        imageUrl: item.Image || `https://images.unsplash.com/photo-15587690529-3859f4f3d4?w=300&h=250&fit=crop&auto=format&sig=${index}`
+        imageUrl: item.Image || `https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop&auto=format&sig=${index}`
       },
-      thumbnailImages: [{
-        imageUrl: item.Image || `https://images.unsplash.com/photo-1584917866790-50a1d3b4c4?w=300&h=250&fit=crop&auto=format&sig=${index}`
-      }],
+      thumbnailImages: [
+        {
+          imageUrl: item.Image || `https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop&auto=format&sig=${index}`
+        }
+      ],
       itemWebUrl: item.Link,
       itemLocation: {
         postalCode: "",
@@ -110,9 +112,20 @@ export async function GET(request: NextRequest) {
       listingMarketplaceId: `VINTED_${country.toUpperCase()}`
     }));
 
+    // Client-side price filtering since Vinted API doesn't support it
+    let filteredItems = transformedItems;
+    if (minPrice || maxPrice) {
+      filteredItems = transformedItems.filter(item => {
+        const priceValue = parseFloat(item.price.value.replace(/[^\d.,]/g, '').replace(',', '.'));
+        const min = parseFloat(minPrice) || 0;
+        const max = parseFloat(maxPrice) || Infinity;
+        return priceValue >= min && priceValue <= max;
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      items: transformedItems,
+      items: filteredItems,
       totalResults: vintedData.pagination.total_items,
       totalPages: vintedData.pagination.total_pages,
       currentPage: vintedData.pagination.current_page,

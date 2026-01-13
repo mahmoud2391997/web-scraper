@@ -29,17 +29,11 @@ export default function Home() {
   const [bags, setBags] = useState<Bag[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(24);
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(1000);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedPlatform, setSelectedPlatform] = useState<"ebay" | "vinted">("ebay");
-
-  // Reset to first page when changing items per page
-  const handleItemsPerPageChange = (newItemsPerPage: number) => {
-    setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1); // Reset to first page when changing items per page
-  };
+  const itemsPerPage = 24; // Constant 24 items per page
 
   const allBrands = [
     "Dior bag",
@@ -86,7 +80,7 @@ export default function Home() {
     setSearchQuery(config.defaultSearchQuery);
     setSelectedBrands(config.defaultBrands);
     setSelectedCountry(config.defaultCountry);
-    setItemsPerPage(config.defaultItemsPerPage);
+    // itemsPerPage is now constant (24), no need to set
     setMinPrice(config.defaultMinPrice);
     setMaxPrice(config.defaultMaxPrice);
     setCurrentPage(1);
@@ -363,19 +357,6 @@ export default function Home() {
               step="50"
               onChange={(e: ChangeEvent<HTMLInputElement>) => setMaxPrice(parseInt(e.target.value) || 0)}
             />
-          </div>
-          <div className="filter-group">
-            <label htmlFor="itemsPerPage">Items per page</label>
-            <select
-              id="itemsPerPage"
-              value={itemsPerPage}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => handleItemsPerPageChange(parseInt(e.target.value))}
-            >
-              <option value="12">12</option>
-              <option value="24">24</option>
-              <option value="48">48</option>
-              <option value="96">96</option>
-            </select>
           </div>
         </div>
 
