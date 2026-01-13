@@ -3,11 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 interface VintedItem {
   Title: string;
   Price: string;
-  Currency: string;
   Brand: string;
   Size: string;
-  URL: string;
-  ImageURL: string;
+  Image: string;  // Changed from ImageURL to Image
+  Link: string;   // Changed from URL to Link
 }
 
 interface VintedResponse {
@@ -68,7 +67,7 @@ export async function GET(request: NextRequest) {
       title: item.Title,
       price: {
         value: item.Price,
-        currency: item.Currency
+        currency: item.Price.includes('zł') ? 'PLN' : 'EUR' // Extract currency from price
       },
       condition: "Unknown", // Vinted doesn't provide condition
       seller: {
@@ -77,12 +76,12 @@ export async function GET(request: NextRequest) {
         feedbackScore: 0
       },
       image: {
-        imageUrl: item.ImageURL || `https://images.unsplash.com/photo-15587690529-3859f4f3d4?w=300&h=250&fit=crop&auto=format&sig=${index}`
+        imageUrl: item.Image || `https://images.unsplash.com/photo-15587690529-3859f4f3d4?w=300&h=250&fit=crop&auto=format&sig=${index}`
       },
       thumbnailImages: [{
-        imageUrl: item.ImageURL || `https://images.unsplash.com/photo-1584917866790-50a1d3b4c4?w=300&h=250&fit=crop&auto=format&sig=${index}`
+        imageUrl: item.Image || `https://images.unsplash.com/photo-1584917866790-50a1d3b4c4?w=300&h=250&fit=crop&auto=format&sig=${index}`
       }],
-      itemWebUrl: item.URL,
+      itemWebUrl: item.Link,
       itemLocation: {
         postalCode: "",
         country: country.toUpperCase()
