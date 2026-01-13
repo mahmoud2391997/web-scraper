@@ -30,6 +30,12 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(24);
+
+  // Reset to first page when changing items per page
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(1000);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
@@ -329,7 +335,7 @@ export default function Home() {
             <select
               id="itemsPerPage"
               value={itemsPerPage}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => setItemsPerPage(parseInt(e.target.value))}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => handleItemsPerPageChange(parseInt(e.target.value))}
             >
               <option value="12">12</option>
               <option value="24">24</option>
