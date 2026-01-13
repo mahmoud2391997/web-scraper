@@ -77,10 +77,10 @@ export async function GET(request: NextRequest) {
         feedbackScore: 0
       },
       image: {
-        imageUrl: item.ImageURL
+        imageUrl: item.ImageURL || `https://images.unsplash.com/photo-15587690529-3859f4f3d4?w=300&h=250&fit=crop&auto=format&sig=${index}`
       },
       thumbnailImages: [{
-        imageUrl: item.ImageURL
+        imageUrl: item.ImageURL || `https://images.unsplash.com/photo-1584917866790-50a1d3b4c4?w=300&h=250&fit=crop&auto=format&sig=${index}`
       }],
       itemWebUrl: item.URL,
       itemLocation: {
@@ -110,61 +110,14 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Vinted API Error:", error);
     
-    // Return mock data for demonstration when API is unavailable
-    const mockItems: VintedItem[] = [
-      {
-        Title: "Vinted API Unavailable",
-        Price: "0.00",
-        Currency: "EUR",
-        Brand: "Demo",
-        Size: "N/A",
-        URL: "https://vinted.com",
-        ImageURL: "https://via.placeholder.com/300x250?text=Vinted+API+Unavailable"
-      }
-    ];
-
-    const transformedMockItems = mockItems.map((item, index) => ({
-      itemId: `vinted_demo_${index}`,
-      title: item.Title,
-      price: {
-        value: item.Price,
-        currency: item.Currency
-      },
-      condition: "Unknown",
-      seller: {
-        username: "Vinted Seller",
-        feedbackPercentage: "100.0",
-        feedbackScore: 0
-      },
-      image: {
-        imageUrl: item.ImageURL
-      },
-      thumbnailImages: [{
-        imageUrl: item.ImageURL
-      }],
-      itemWebUrl: item.URL,
-      itemLocation: {
-        postalCode: "",
-        country: country.toUpperCase()
-      },
-      additionalImages: [],
-      adultOnly: false,
-      legacyItemId: `vinted_demo_${index}`,
-      availableCoupons: false,
-      itemOriginDate: new Date().toISOString(),
-      itemCreationDate: new Date().toISOString(),
-      topRatedBuyingExperience: false,
-      priorityListing: false,
-      listingMarketplaceId: `VINTED_${country.toUpperCase()}`
-    }));
-
     return NextResponse.json({
-      success: true,
-      items: transformedMockItems,
-      totalResults: 1,
-      totalPages: 1,
+      success: false,
+      error: "Vinted API is currently unavailable. Please try again later.",
+      items: [],
+      totalResults: 0,
+      totalPages: 0,
       currentPage: 1,
-      message: "Vinted API is currently unavailable. Showing demo data."
-    });
+      message: "Vinted search failed."
+    }, { status: 503 });
   }
 }
