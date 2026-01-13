@@ -96,6 +96,11 @@ export default function Home() {
         if (searchQuery !== currentBrandSearch) {
           setSelectedBrands([]);
         }
+      } else {
+        // When search is cleared, restore default Dior
+        if (selectedBrands.length === 0) {
+          setSelectedBrands(["Dior bag"]);
+        }
       }
     }
   }, [searchQuery, selectedPlatform, selectedBrands]);
@@ -103,6 +108,14 @@ export default function Home() {
   // Client-side price filtering for Vinted
   useEffect(() => {
     if (selectedPlatform === "vinted" && allBags.length > 0 && !loading) {
+      console.log("Applying Vinted client-side filtering:", {
+        allBagsCount: allBags.length,
+        minPrice,
+        maxPrice,
+        currentPage,
+        itemsPerPage
+      });
+      
       const filtered = allBags.filter(bag => {
         const price = parseFloat(bag.price.value.replace(/[^\d.]/g, ''));
         return price >= minPrice && price <= maxPrice;
@@ -112,6 +125,13 @@ export default function Home() {
       const startIndex = (currentPage - 1) * itemsPerPage;
       const endIndex = startIndex + itemsPerPage;
       const paginatedResults = filtered.slice(startIndex, endIndex);
+      
+      console.log("Vinted filtered results:", {
+        filteredCount: filtered.length,
+        startIndex,
+        endIndex,
+        paginatedCount: paginatedResults.length
+      });
       
       setBags(paginatedResults);
       setTotalPages(Math.ceil(filtered.length / itemsPerPage));
