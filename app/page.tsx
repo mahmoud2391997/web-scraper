@@ -57,6 +57,13 @@ export default function Home() {
     }
   }, [selectedPlatform, searchQuery]);
 
+  // Set default Dior brand filter on initial load
+  useEffect(() => {
+    if (selectedBrands.length === 0) {
+      setSelectedBrands(["Dior bag"]);
+    }
+  }, []);
+
   // Handle brand filter changes for Vinted
   useEffect(() => {
     if (selectedPlatform === "vinted" && selectedBrands.length > 0) {
