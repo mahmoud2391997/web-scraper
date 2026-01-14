@@ -5,13 +5,14 @@ import * as XLSX from 'xlsx';
 
 interface Bag {
   itemId: string;
-  price: { value: string; currency: string };
   title: string;
-  condition?: string;
-  seller?: { username: string; feedbackPercentage?: string; feedbackScore?: number };
-  image?: { imageUrl: string };
-  thumbnailImages?: { imageUrl: string }[];
-  itemWebUrl?: string;
+  Price: string;
+  Brand: string;
+  Size: string;
+  Image: string;
+  Link: string;
+  Condition: string;
+  Seller: string;
   listingMarketplaceId?: string;
 }
 
@@ -147,10 +148,10 @@ export default function Home() {
       }
       const data = await response.json();
       if (data.success) {
-        setBags(data.items);
-        setResultsCount(data.totalResults);
-        setTotalPages(data.totalPages);
-        setCurrentPage(data.currentPage);
+        setBags(data.data || []);
+        setResultsCount(data.totalResults || 0);
+        setTotalPages(data.totalPages || 0);
+        setCurrentPage(data.currentPage || 1);
       } else {
         throw new Error(data.details || 'API returned an error.');
       }
@@ -177,12 +178,12 @@ export default function Home() {
       const excelData = bags.map((bag, index) => ({
         'No.': index + 1,
         'Title': bag.title,
-        'Price': `€${parseFloat(bag.price.value).toFixed(2)}`,
-        'Currency': bag.price.currency || 'EUR',
-        'Condition': bag.condition || 'Unknown',
-        'Seller': bag.seller?.username || 'Unknown',
-        'Item URL': bag.itemWebUrl || '',
-        'Image URL': bag.image?.imageUrl || bag.thumbnailImages?.[0]?.imageUrl || '',
+        'Price': `€${parseFloat(bag.Price).toFixed(2)}`,
+        'Currency': bag.Price.includes('zł') ? 'PLN' : 'EUR',
+        'Condition': bag.Condition || 'Unknown',
+        'Seller': bag.Seller || 'Unknown',
+        'Item URL': bag.Link || '',
+        'Image URL': bag.Image || 'https://via.placeholder.com/300x250?text=No+Image',
         'Item ID': bag.itemId
       }));
 
@@ -427,13 +428,12 @@ export default function Home() {
 
 const BagCard = ({ bag }: BagCardProps) => {
   const imageUrl =
-    bag.image?.imageUrl ||
-    bag.thumbnailImages?.[0]?.imageUrl ||
+    bag.Image ||
     "https://via.placeholder.com/300x250?text=No+Image";
-  const price = parseFloat(bag.price.value).toFixed(2);
-  const condition = bag.condition || "Unknown";
-  const seller = bag.seller?.username || "Unknown Seller";
-  const itemUrl = bag.itemWebUrl || "#";
+  const price = parseFloat(bag.Price || '0').toFixed(2);
+  const condition = bag.Condition || "Unknown";
+  const seller = bag.Seller || "Unknown Seller";
+  const itemUrl = bag.Link || "#";
   const isVintedItem = bag.listingMarketplaceId?.startsWith("VINTED");
 
   return (
